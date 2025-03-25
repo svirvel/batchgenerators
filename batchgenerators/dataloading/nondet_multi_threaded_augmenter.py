@@ -15,7 +15,7 @@
 
 import traceback
 from copy import deepcopy
-from typing import List, Union
+from typing import List, Union, Callable
 import threading
 from builtins import range
 from multiprocessing import Process
@@ -139,7 +139,7 @@ class NonDetMultiThreadedAugmenter(object):
     """
 
     def __init__(self, data_loader, transform, num_processes, num_cached=2, seeds=None, pin_memory=False,
-                 wait_time=0.02):
+                 wait_time=0.02, results_loop_fn: Callable = results_loop):
         self.pin_memory = pin_memory
         self.transform = transform
         self.num_cached = num_cached
@@ -151,6 +151,7 @@ class NonDetMultiThreadedAugmenter(object):
 
         self._queue = None
         self._processes = []
+        self.results_loop_fn = results_loop
         self.results_loop_thread = None
         self.results_loop_queue = None
         self.abort_event = None
@@ -228,7 +229,7 @@ class NonDetMultiThreadedAugmenter(object):
 
             # in_queue: Queue, out_queue: thrQueue, abort_event: Event, pin_memory: bool, worker_list: List[Process],
             # gpu: Union[int, None] = None, wait_time: float = 0.02
-            self.results_loop_thread = threading.Thread(target=results_loop, args=(
+            self.results_loop_thread = threading.Thread(target=self.results_loop_fn, args=(
                 self._queue, self.results_loop_queue, self.abort_event, self.pin_memory, self._processes, gpu,
                 self.wait_time)
                                                         )
